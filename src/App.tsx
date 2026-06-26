@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { initAuth, googleSignIn, logout as firebaseLogout } from './lib/firebase';
 import { CivicIssue, PlatformStats, NotificationToast } from './types';
 import DashboardStats from './components/DashboardStats';
 import CivicMapView from './components/CivicMapView';
@@ -33,78 +34,64 @@ export default function App() {
     name: string;
     picture?: string;
     gamification?: any;
-  } | null>(() => {
-    try {
-      const saved = localStorage.getItem('google_user_profile');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
-  const [authLoading, setAuthLoading] = useState(false);
+  } | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
-  // Trigger Google Login Popup (Implicit flow, no client secret required)
-  const handleGoogleLogin = () => {
-    setAuthLoading(true);
-    const clientId = '476391261582-0rcu9pekpgngd51elok3lhl2stgvq91a.apps.googleusercontent.com';
-    const redirectUri = `${window.location.origin}/auth/callback`;
-    const scopes = encodeURIComponent('openid email profile');
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${scopes}&prompt=select_account`;
-
-    const popup = window.open(authUrl, 'google_oauth_popup', 'width=550,height=650');
-    if (!popup) {
-      setAuthLoading(false);
-      alert('Popup blocked! Please allow popups for this site to connect with Google.');
-    }
-  };
-
-  const handleGoogleLogout = () => {
-    setUserProfile(null);
-    localStorage.removeItem('google_user_profile');
-  };
-
-  // Listen for Google OAuth successful postMessage from popup callback
   useEffect(() => {
-    const handleOAuthMessage = async (event: MessageEvent) => {
-      const origin = event.origin;
-      if (!origin.endsWith('.run.app') && !origin.includes('localhost') && origin !== window.location.origin) {
-        return;
+    const unsubscribe = initAuth(
+      (user, token) => {
+        const profile = {
+          email: user.email || '',
+          name: user.displayName || 'Citizen',
+          picture: user.photoURL || undefined
+        };
+        setUserProfile(profile);
+        setAuthLoading(false);
+      },
+      () => {
+        setUserProfile(null);
+        setAuthLoading(false);
       }
-
-      if (event.data?.type === 'GOOGLE_OAUTH_SUCCESS' && event.data?.accessToken) {
-        try {
-          const res = await fetch(`/api/auth/profile?access_token=${event.data.accessToken}`);
-          if (res.ok) {
-            const data = await res.json();
-            const profile = {
-              email: data.email,
-              name: data.name,
-              picture: data.picture
-            };
-            setUserProfile(profile);
-            localStorage.setItem('google_user_profile', JSON.stringify(profile));
-            
-            // Welcome notification
-            const welcomeToast: NotificationToast = {
-              id: Math.random().toString(36).substring(2, 9),
-              issueId: 'google-auth',
-              title: `Signed in as ${data.name}`,
-              type: 'resolved',
-              timestamp: new Date().toISOString()
-            };
-            setToasts(prev => [welcomeToast, ...prev]);
-          }
-        } catch (error) {
-          console.error("Error verifying Google OAuth token", error);
-        } finally {
-          setAuthLoading(false);
-        }
-      }
-    };
-
-    window.addEventListener('message', handleOAuthMessage);
-    return () => window.removeEventListener('message', handleOAuthMessage);
+    );
+    return () => unsubscribe();
   }, []);
+
+  // Trigger Google Login Popup
+  const handleGoogleLogin = async () => {
+    setAuthLoading(true);
+    try {
+      const result = await googleSignIn();
+      if (result) {
+        const profile = {
+          email: result.user.email || '',
+          name: result.user.displayName || 'Citizen',
+          picture: result.user.photoURL || undefined
+        };
+        setUserProfile(profile);
+        
+        // Welcome notification
+        const welcomeToast: NotificationToast = {
+          id: Math.random().toString(36).substring(2, 9),
+          issueId: 'google-auth',
+          title: `Signed in as ${profile.name}`,
+          type: 'resolved',
+          timestamp: new Date().toISOString()
+        };
+        setToasts(prev => [welcomeToast, ...prev]);
+        setIsAuthSetupOpen(false);
+      }
+    } catch (error) {
+      console.error("Error signing in", error);
+      alert("Failed to sign in. Please try again.");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleGoogleLogout = async () => {
+    await firebaseLogout();
+    setUserProfile(null);
+  };
 
   // In-app Notification & Follow system states
   const [followedIssueIds, setFollowedIssueIds] = useState<string[]>(() => {
@@ -702,7 +689,34 @@ export default function App() {
               </div>
 
               {/* Action options */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end flex-wrap gap-2">
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
+                {/* Guest Login */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const profile = {
+                      email: 'jury@example.com',
+                      name: 'Hackathon Jury',
+                      picture: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces'
+                    };
+                    setUserProfile(profile);
+                    localStorage.setItem('google_user_profile', JSON.stringify(profile));
+                    
+                    const welcomeToast: NotificationToast = {
+                      id: Math.random().toString(36).substring(2, 9),
+                      issueId: 'google-auth-simulated',
+                      title: `Signed in as Hackathon Jury`,
+                      type: 'resolved',
+                      timestamp: new Date().toISOString()
+                    };
+                    setToasts(prev => [welcomeToast, ...prev]);
+                    setIsAuthSetupOpen(false);
+                  }}
+                  className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold py-2 px-4 rounded-xl cursor-pointer transition-all"
+                  title="Login as a guest evaluator to bypass Google Cloud OAuth propagation issues"
+                >
+                  🚀 Guest Login (Jury Evaluation)
+                </button>
 
                 <div className="flex items-center gap-2">
                   <button
