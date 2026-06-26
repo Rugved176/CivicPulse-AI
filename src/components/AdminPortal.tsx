@@ -24,6 +24,16 @@ interface AuthorityUser {
 
 const PRESET_USERS: (AuthorityUser & { pin: string })[] = [
   {
+    email: "admin@civicpulse.gov.in",
+    name: "System Administrator",
+    designation: "General Administrator",
+    role: "Admin",
+    wardRestriction: "All",
+    deptRestriction: "All",
+    avatarText: "AD",
+    pin: "1234"
+  },
+  {
     email: "commissioner@pmc.gov.in",
     name: "Dr. Rajendra Bhosale",
     designation: "PMC Municipal Commissioner",
