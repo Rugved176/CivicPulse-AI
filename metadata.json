@@ -1,0 +1,6 @@
+{
+  "name": "CivicPulse AI",
+  "description": "Multi-agent community civic issue platform for Indian municipal corporations",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
