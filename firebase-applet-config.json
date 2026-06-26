@@ -3,6 +3,7 @@
   "appId": "1:476391261582:web:45593c62fd32cf931ad0df",
   "apiKey": "AIzaSyDNlvuBZPO8pPgeeIVLaAJOK3UQLPms60g",
   "authDomain": "gen-lang-client-0145336725.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-civicpulseai-1be0821a-64fc-40b1-9b17-ab753dead7c2",
   "storageBucket": "gen-lang-client-0145336725.firebasestorage.app",
   "messagingSenderId": "476391261582",
   "measurementId": ""
