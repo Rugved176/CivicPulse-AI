@@ -7,6 +7,7 @@ import ReportsExplorer from './components/ReportsExplorer';
 import CitizenLeaderboard from './components/CitizenLeaderboard';
 import ReportIssueForm from './components/ReportIssueForm';
 import NotificationToasts from './components/NotificationToasts';
+import ThemeToggle from './components/ThemeToggle';
 import AdminPortal from './components/AdminPortal';
 import {
   Cpu, LayoutDashboard, Database, ShieldAlert,
@@ -29,23 +30,20 @@ export default function App() {
   const [isFaqOpen, setIsFaqOpen] = useState(false);
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
-  // Google OAuth State
+  // Simulated Auth State
   const [userProfile, setUserProfile] = useState<{
     email: string;
     name: string;
     picture?: string;
     gamification?: any;
-  } | null>(null);
-  const [authLoading, setAuthLoading] = useState(false);
+  } | null>(() => {
+    const saved = localStorage.getItem('user_profile');
+    return saved ? JSON.parse(saved) : null;
+  });
 
   // Trigger Login
   const handleLoginSuccess = (credentialResponse: any) => {
-    // In a real app, you would send this token to your backend to verify it
-    // Here we'll just decode the JWT if possible or simulate setting user profile
     console.log(credentialResponse);
-    // Simulation: just decoding would require jwt-decode library
-    // For now, let's just use the fact they logged in and fetch details if we had an API
-    // Setting a dummy profile for demonstration
     const profile = {
       email: 'user@example.com',
       name: 'User',
@@ -240,10 +238,10 @@ export default function App() {
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 flex flex-col font-sans">
       
       {/* Top Header / Nav */}
-      <header className="border-b border-slate-200 bg-white text-slate-900 sticky top-0 z-40 px-6 py-3.5 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm">
+      <header className="border-b border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-800 text-slate-900 dark:text-slate-100 sticky top-0 z-40 px-6 py-3.5 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-lg text-white font-display shadow-sm animate-pulse-slow">
             C
@@ -268,6 +266,7 @@ export default function App() {
 
         {/* Global Controls & CTA */}
         <div className="flex items-center gap-2.5">
+          <ThemeToggle />
           {/* Google OAuth Login Section */}
           <div className="flex items-center gap-2">
             {userProfile ? (
@@ -311,6 +310,7 @@ export default function App() {
               />
             )}
           </div>
+
 
           <button
             onClick={() => setIsFaqOpen(true)}

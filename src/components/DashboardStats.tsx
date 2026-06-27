@@ -2,7 +2,6 @@ import React from 'react';
 import { PlatformStats } from '../types';
 import { ShieldAlert, Users, TrendingUp, Calendar, AlertTriangle, Hammer, CheckCircle2 } from 'lucide-react';
 import { motion } from 'motion/react';
-import PredictiveInsights from './PredictiveInsights';
 
 interface DashboardStatsProps {
   stats: PlatformStats;
@@ -201,11 +200,6 @@ export default function DashboardStats({ stats, onRefresh }: DashboardStatsProps
             })}
           </div>
         </div>
-      </div>
-
-      {/* Bottom Row: Predictive Insights */}
-      <div className="h-[350px]">
-        <PredictiveInsights />
       </div>
 
     </div>
