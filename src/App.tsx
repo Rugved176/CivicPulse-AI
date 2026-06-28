@@ -153,15 +153,36 @@ export default function App() {
         const newIssue = issues.find(i => i.id === id);
 
         if (oldIssue && newIssue) {
-          if (oldIssue.status !== newIssue.status) {
-            const toastType = newIssue.status === 'Resolved' ? 'resolved' : newIssue.status === 'Escalated' ? 'escalated' : 'updated';
+          if (oldIssue.status === 'Routed' && (newIssue.status === 'InProgress' || newIssue.status === 'Resolved')) {
+            const toastType = newIssue.status === 'Resolved' ? 'resolved' : 'updated';
             addToast(newIssue.id, newIssue.title, toastType);
+          } else if (oldIssue.status !== newIssue.status && newIssue.status === 'Escalated') {
+             addToast(newIssue.id, newIssue.title, 'escalated');
           }
         }
       });
     }
     prevIssuesRef.current = issues;
   }, [issues, followedIssueIds]);
+
+  // Simulation: Randomly update followed issue status
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIssues(prevIssues => {
+        const followedIssues = prevIssues.filter(issue => followedIssueIds.includes(issue.id) && issue.status === 'Routed');
+        if (followedIssues.length > 0) {
+          const issueToUpdate = followedIssues[Math.floor(Math.random() * followedIssues.length)];
+          const newStatus = Math.random() > 0.5 ? 'InProgress' : 'Resolved';
+          
+          return prevIssues.map(issue => 
+            issue.id === issueToUpdate.id ? { ...issue, status: newStatus as any } : issue
+          );
+        }
+        return prevIssues;
+      });
+    }, 15000); // Simulate every 15 seconds
+    return () => clearInterval(interval);
+  }, [followedIssueIds]);
 
   const handleIssueReported = (newIssue: CivicIssue) => {
     // Automatically follow newly reported issues

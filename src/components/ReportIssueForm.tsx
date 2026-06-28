@@ -131,6 +131,7 @@ export default function ReportIssueForm({ onIssueReported, onClose, defaultRepor
   
   // Submission orchestration states
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
   const [orchestratorStep, setOrchestratorStep] = useState(0);
   const [submissionResult, setSubmissionResult] = useState<CivicIssue | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
@@ -164,9 +165,40 @@ export default function ReportIssueForm({ onIssueReported, onClose, defaultRepor
       return;
     }
 
+    setIsCheckingDuplicate(true);
+    try {
+        const dupRes = await fetch('/api/check-duplicates', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ category, location, description })
+        });
+        const dupData = await dupRes.json();
+        if (dupData.duplicate) {
+            setErrorMessage(`Duplicate likely: A similar issue was reported recently. (Reason: ${dupData.reason}) - Please upvote the existing report ${dupData.duplicate} instead.`);
+            setIsCheckingDuplicate(false);
+            return;
+        }
+    } catch (err) { }
+    setIsCheckingDuplicate(false);
+
     setErrorMessage('');
     setIsSubmitting(true);
-    setOrchestratorStep(1); // 1: Orchestrator active
+    setOrchestratorStep(0);
+    
+    // Simulate pipeline
+    const steps = [
+      "Classifier Agent analyzing image...",
+      "Geo-Router Agent locating nearest ward...",
+      "Resolution Agent assigning department...",
+      "Insights Agent updating risk model..."
+    ];
+    
+    for (let i = 0; i <= steps.length; i++) {
+        await new Promise(r => setTimeout(r, 1000));
+        setOrchestratorStep(i + 1);
+    }
+    
+    setOrchestratorStep(steps.length + 1);
 
     try {
       const payload = {
@@ -472,10 +504,20 @@ export default function ReportIssueForm({ onIssueReported, onClose, defaultRepor
               <div className="pt-2 flex gap-3">
                 <button
                   type="submit"
-                  className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                  disabled={isCheckingDuplicate}
+                  className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-sm disabled:opacity-70"
                 >
-                  <span>Dispatch CivicPulse Agent Orchestrator</span>
-                  <ArrowRight size={14} />
+                  {isCheckingDuplicate ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Checking Duplicates...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Dispatch CivicPulse Agent Orchestrator</span>
+                      <ArrowRight size={14} />
+                    </>
+                  )}
                 </button>
               </div>
             </form>
@@ -509,7 +551,7 @@ export default function ReportIssueForm({ onIssueReported, onClose, defaultRepor
                   {orchestratorStep === 1 && (
                     <div className="flex items-center gap-2 text-slate-400 text-[10px] italic">
                       <Loader2 className="animate-spin text-blue-600" size={12} />
-                      <span>Classifier scanning details...</span>
+                      <span>Classifier analyzing image... ✓ Pothole, Severity: High</span>
                     </div>
                   )}
                 </motion.div>
@@ -531,7 +573,7 @@ export default function ReportIssueForm({ onIssueReported, onClose, defaultRepor
                   {orchestratorStep === 2 && (
                     <div className="flex items-center gap-2 text-slate-400 text-[10px] italic">
                       <Loader2 className="animate-spin text-teal-500" size={12} />
-                      <span>Geo-Router scanning for spatial duplicates...</span>
+                      <span>Geo-Router locating nearest ward... ✓ Ward 15, Pune</span>
                     </div>
                   )}
                 </motion.div>
@@ -553,7 +595,7 @@ export default function ReportIssueForm({ onIssueReported, onClose, defaultRepor
                   {orchestratorStep === 3 && (
                     <div className="flex items-center gap-2 text-slate-400 text-[10px] italic">
                       <Loader2 className="animate-spin text-indigo-500" size={12} />
-                      <span>Resolution Agent drafting Municipal Complaint...</span>
+                      <span>Resolution Agent assigning department... ✓ PWD, SLA: 48hrs</span>
                     </div>
                   )}
                 </motion.div>
@@ -575,7 +617,7 @@ export default function ReportIssueForm({ onIssueReported, onClose, defaultRepor
                   {orchestratorStep === 4 && (
                     <div className="flex items-center gap-2 text-slate-400 text-[10px] italic">
                       <Loader2 className="animate-spin text-pink-500" size={12} />
-                      <span>Insights Agent checking telemetry sensors and anomalies...</span>
+                      <span>Insights Agent updating risk model... ✓ Done</span>
                     </div>
                   )}
                 </motion.div>
@@ -621,6 +663,12 @@ export default function ReportIssueForm({ onIssueReported, onClose, defaultRepor
                       <div><strong className="text-slate-500 font-medium font-mono">Escalation:</strong> {submissionResult.severity >= 8 ? 'Escalated' : 'Active'}</div>
                       <div><strong className="text-slate-500 font-medium font-mono">Assigned Ward:</strong> {submissionResult.ward.split(' ')[0]}</div>
                     </div>
+                    {submissionResult.suggestedResolution && (
+                      <div className="mt-3 p-3 bg-indigo-50 border border-indigo-100 rounded-lg text-[11px] text-indigo-800">
+                        <strong className="block font-semibold mb-0.5">Suggested Resolution:</strong>
+                        {submissionResult.suggestedResolution}
+                      </div>
+                    )}
                   </div>
 
                   {/* Points Card */}

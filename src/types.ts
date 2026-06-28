@@ -20,7 +20,7 @@ export interface CivicIssue {
   reportedBy: string;
   reportedAt: string;
   severity: number;
-  status: 'Active' | 'Resolved' | 'Escalated';
+  status: 'Active' | 'Routed' | 'InProgress' | 'Resolved' | 'Escalated';
   department: string;
   priority: 'Low' | 'Medium' | 'High' | 'Critical';
   points: number;
@@ -32,6 +32,8 @@ export interface CivicIssue {
   adminNotes?: string;
   state?: string;
   city?: string;
+  slaDeadline?: string;
+  suggestedResolution?: string;
 }
 
 export interface CitizenProfile {

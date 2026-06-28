@@ -80,16 +80,16 @@ export default function CivicMapView({ issues, selectedIssueId, onSelectIssue }:
                       />
                     )}
 
-                    <div className={`w-6 h-6 rounded-full border-2 border-white shadow-lg flex items-center justify-center transition-all duration-300 ${
+                    <div className={`w-8 h-8 rounded-full border-2 border-white shadow-lg flex items-center justify-center transition-all duration-300 ${
                       isResolved
                         ? 'bg-emerald-500'
                         : isEscalated
                         ? 'bg-red-600 animate-pulse'
                         : isCritical
-                        ? 'bg-red-500'
-                        : 'bg-orange-400'
+                        ? 'bg-red-600'
+                        : 'bg-orange-500'
                     }`}>
-                      <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                      <MapPin size={16} className="text-white" />
                     </div>
 
                     <div className="absolute -bottom-1.5 px-1 py-0.5 bg-slate-900/90 text-[8px] text-white font-mono rounded border border-slate-800 shadow-sm whitespace-nowrap scale-90">

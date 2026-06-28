@@ -228,13 +228,12 @@ Citizen Points Awarded: ${points}`;
 function seedDatabase() {
   reportedIssues = [];
 
-  // Calculate stats safely
+  // Reset stats
   platformStats.totalIssuesThisMonth = 0;
   platformStats.resolvedIssues = 0;
   platformStats.resolutionRate = 100;
   platformStats.activeCitizens = 0;
 
-  // Update breakdown
   platformStats.issueBreakdown = {
     'Roads/Potholes': 0,
     'Water/Drainage': 0,
@@ -243,7 +242,6 @@ function seedDatabase() {
     'Parks': 0,
   };
 
-  // Update department loads
   platformStats.departmentLoad = [
     { department: "Roads Department (PWD)", load: 0 },
     { department: "Water Supply & Drainage Board", load: 0 },
@@ -251,15 +249,145 @@ function seedDatabase() {
     { department: "Solid Waste Management Department", load: 0 },
     { department: "Horticulture & Parks Department", load: 0 },
   ];
+
+  const seedData = [
+    { title: "Deep Pothole on Main Road", category: "Roads/Potholes", description: "Large, deep pothole posing safety risk to commuters.", location: "Andheri", reportedBy: "Citizen_A" },
+    { title: "Water Pipe Burst", category: "Water/Drainage", description: "Significant water wastage and flooding near the intersection.", location: "Bandra", reportedBy: "Citizen_B" },
+    { title: "Uncollected Garbage Accumulation", category: "Solid Waste", description: "Garbage has not been collected for three days, attracting pests.", location: "Colaba", reportedBy: "Citizen_C" },
+    { title: "Flickering Street Light", category: "Electricity", description: "Street light flickering and potentially dangerous.", location: "Andheri", reportedBy: "Citizen_D" },
+    { title: "Broken Park Bench", category: "Parks", description: "Wooden park bench broken, needs immediate repair.", location: "Bandra", reportedBy: "Citizen_E" },
+  ];
+
+  seedData.forEach(data => {
+    const analysis = runProceduralAgentOrchestrator(
+      data.title, 
+      data.description, 
+      data.category as any, 
+      data.location, 
+      data.reportedBy, 
+      "Mumbai Municipal Corporation"
+    );
+
+    const wardDetails = getWardDetails(data.location, "Mumbai Municipal Corporation");
+    const deptDetails = getDepartmentDetails(data.category as any, "Mumbai Municipal Corporation");
+
+    const newIssue: CivicIssue = {
+      id: analysis.issueId,
+      title: data.title,
+      description: data.description,
+      category: data.category as any,
+      location: data.location,
+      ward: wardDetails.ward,
+      lat: wardDetails.lat,
+      lng: wardDetails.lng,
+      reportedBy: data.reportedBy,
+      reportedAt: new Date(Date.now() - Math.floor(Math.random() * 86400000)).toISOString(),
+      severity: analysis.severity,
+      status: "Active",
+      department: deptDetails.name,
+      priority: analysis.priority,
+      points: analysis.points,
+      verificationCount: Math.floor(Math.random() * 5),
+      agentResponses: analysis.responses,
+      state: "Maharashtra",
+      city: "Mumbai Municipal Corporation"
+    };
+
+    reportedIssues.push(newIssue);
+    platformStats.totalIssuesThisMonth += 1;
+    platformStats.issueBreakdown[data.category as keyof typeof platformStats.issueBreakdown] += 1;
+    platformStats.activeCitizens += 1;
+  });
 }
+
+// Auto-escalation simulation
+setInterval(() => {
+  reportedIssues.forEach(issue => {
+    if (issue.status !== 'Escalated' && issue.verificationCount >= 5) {
+      // For demo, simulate 24hrs as 60s
+      const reportedTime = new Date(issue.reportedAt).getTime();
+      const now = Date.now();
+      if (now - reportedTime > 60 * 1000) {
+        issue.status = 'Escalated';
+        issue.severity = 10;
+        issue.priority = 'Critical';
+      }
+    }
+  });
+}, 30000);
 
 // Perform initial seed of database
 seedDatabase();
+
+function updateResolutionRate() {
+  platformStats.resolutionRate = platformStats.totalIssuesThisMonth > 0
+    ? Math.round((platformStats.resolvedIssues / platformStats.totalIssuesThisMonth) * 100)
+    : 100;
+}
+
+// API route to check for duplicates
+app.post("/api/check-duplicates", async (req, res) => {
+  try {
+    const { category, location, description } = req.body;
+    const similarIssues = reportedIssues.filter(i => 
+      i.category === category && 
+      (i.location.toLowerCase().includes(location.toLowerCase()) || location.toLowerCase().includes(i.location.toLowerCase()))
+    );
+
+    if (similarIssues.length === 0) return res.json({ duplicate: null });
+
+    if (!isAiAvailable()) return res.json({ duplicate: null }); // No AI, no check
+
+    const prompt = `A citizen is about to report the following issue:
+Category: ${category}
+Location: ${location}
+Description: "${description}"
+
+Here are existing similar reports in the same area:
+${similarIssues.map(i => `- ${i.id}: ${i.title} (${i.reportedAt})`).join('\n')}
+
+Are any of these a duplicate? If yes, return the ID of the duplicate issue and a reason. If no, return duplicate: null.
+Response format (JSON):
+{
+  "duplicate": "ID" | null,
+  "reason": "String"
+}`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: prompt,
+      config: { responseMimeType: "application/json" }
+    });
+
+    const result = JSON.parse(response.text?.trim() || '{"duplicate": null}');
+    res.json(result);
+  } catch (error) {
+    console.error("Duplicate check failed:", error);
+    disableAi(error);
+    res.json({ duplicate: null });
+  }
+});
+
+let isAiDisabled = false;
 
 // Express Endpoint to return stats
 app.get("/api/stats", (req, res) => {
   res.json(platformStats);
 });
+
+// Helper to check if AI is available
+function isAiAvailable() {
+  return ai && !isAiDisabled;
+}
+
+// Helper to disable AI on permanent error
+function disableAi(error: any) {
+  const code = error?.code || error?.error?.code || error?.status || error?.error?.status;
+  if (code === 429) {
+    isAiDisabled = true;
+    console.warn("AI service disabled due to resource exhaustion.");
+  }
+}
 
 // Express Endpoint to return all reported issues
 app.get("/api/reports", (req, res) => {
@@ -274,7 +402,7 @@ app.post("/api/draft", async (req, res) => {
       return res.status(400).json({ error: "Missing prompt for drafting." });
     }
 
-    if (!ai) {
+    if (!isAiAvailable()) {
       return res.json({ draft: "I am reporting a severe civic issue in my area concerning: " + prompt + ". Please resolve it immediately to ensure citizen safety." });
     }
 
@@ -291,8 +419,9 @@ Citizen's input: "${prompt}"`,
 
     res.json({ draft: aiResponse.text?.trim() || "" });
   } catch (error) {
-    console.error("Draft generation failed:", error);
-    res.status(500).json({ error: "Failed to generate draft." });
+    console.error("Draft generation failed, falling back:", error);
+    disableAi(error);
+    res.json({ draft: "I am reporting a civic issue concerning: " + prompt + ". Please address this as soon as possible." });
   }
 });
 
@@ -333,7 +462,7 @@ app.post("/api/report", async (req, res) => {
     const finalLng = lng !== undefined && lng !== null ? Number(lng) : wardDetails.lng + (Math.random() - 0.5) * 0.005;
 
     // Try Gemini if available
-    if (ai) {
+    if (isAiAvailable()) {
       try {
         const prompt = `A citizen reported the following civic issue on our platform:
 Title: "${title}"
@@ -358,6 +487,7 @@ JSON Schema:
   "resolution": "📄 RESOLUTION AGENT\\n[Action taken: formal complaint drafted | Complaint ID: CP-${deptDetails.code}-XXXX | Sent to: ${deptDetails.name} | Expected response SLA: X days]",
   "complaintDraft": "[Full, formal complaint letter addressed to ${deptDetails.name} detailing the issue from ${reportedBy} at ${location}]",
   "insights": "📊 INSIGHTS AGENT\\n[Pattern detected or not | Prediction if applicable | Recommendation to local authorities]",
+  "suggestedResolution": "Suggested resolution (crew type, cost estimate, similar fix duration)",
   "rawText": "[Complete, continuous text block formatted EXACTLY matching the prompt response format with headers, agent sections and the ✅ SUMMARY section]",
   "metadata": {
     "severity": number,
@@ -390,6 +520,8 @@ Be highly realistic and specific. Ensure you follow the response format precisel
               insights: geminiResult.insights,
               rawText: geminiResult.rawText || localAnalysis.responses.rawText,
             };
+            // Added suggestedResolution
+            (finalResponses as any).suggestedResolution = geminiResult.suggestedResolution; 
             if (geminiResult.metadata) {
               finalSeverity = geminiResult.metadata.severity || localAnalysis.severity;
               finalPriority = geminiResult.metadata.priority || localAnalysis.priority;
@@ -400,6 +532,7 @@ Be highly realistic and specific. Ensure you follow the response format precisel
         }
       } catch (geminiError) {
         console.error("Gemini model generation failed, falling back to robust local agents:", geminiError);
+        disableAi(geminiError);
       }
     }
 
@@ -415,7 +548,7 @@ Be highly realistic and specific. Ensure you follow the response format precisel
       reportedBy,
       reportedAt: new Date().toISOString(),
       severity: finalSeverity,
-      status: "Active",
+      status: "Routed",
       department: deptDetails.name,
       priority: finalPriority,
       points: finalPoints,
@@ -424,7 +557,9 @@ Be highly realistic and specific. Ensure you follow the response format precisel
       verifiedBy: [],
       agentResponses: finalResponses,
       state,
-      city
+      city,
+      slaDeadline: new Date(Date.now() + finalSla * 24 * 60 * 60 * 1000).toISOString(),
+      suggestedResolution: (finalResponses as any).suggestedResolution
     };
 
     reportedIssues.unshift(newIssue);
@@ -433,6 +568,7 @@ Be highly realistic and specific. Ensure you follow the response format precisel
     platformStats.totalIssuesThisMonth += 1;
     platformStats.issueBreakdown[category] += 1;
     platformStats.activeCitizens += 1;
+    updateResolutionRate();
 
     // Update department load dynamically
     const categoryToIndex: { [key: string]: number } = {
@@ -486,9 +622,7 @@ app.post("/api/resolve/:id", (req, res) => {
   }
   issue.status = "Resolved";
   platformStats.resolvedIssues += 1;
-  platformStats.resolutionRate = platformStats.totalIssuesThisMonth > 0
-    ? Math.round((platformStats.resolvedIssues / platformStats.totalIssuesThisMonth) * 100)
-    : 100;
+  updateResolutionRate();
   res.json(issue);
 });
 
@@ -508,14 +642,10 @@ app.post("/api/admin/update-issue/:id", (req, res) => {
     issue.status = status;
     if (status === "Resolved" && prevStatus !== "Resolved") {
       platformStats.resolvedIssues += 1;
-      platformStats.resolutionRate = platformStats.totalIssuesThisMonth > 0
-        ? Math.round((platformStats.resolvedIssues / platformStats.totalIssuesThisMonth) * 100)
-        : 100;
+      updateResolutionRate();
     } else if (status !== "Resolved" && prevStatus === "Resolved") {
       platformStats.resolvedIssues = Math.max(0, platformStats.resolvedIssues - 1);
-      platformStats.resolutionRate = platformStats.totalIssuesThisMonth > 0
-        ? Math.round((platformStats.resolvedIssues / platformStats.totalIssuesThisMonth) * 100)
-        : 100;
+      updateResolutionRate();
     }
   }
 
@@ -555,28 +685,12 @@ app.post("/api/stats/deploy-preventive/:id", (req, res) => {
 
 // Get Predictive Insights Endpoint
 app.get('/api/predictive-insights', async (req, res) => {
-  try {
-    if (reportedIssues.length === 0) {
-      return res.json([]);
-    }
+  let aiInsights = null;
 
-    if (!ai) {
-      // Fallback if AI not available but we have issues (we should realistically analyze them but we'll return a simple fallback indicating need for AI)
-      return res.json([
-        {
-          id: "PI-FALLBACK",
-          location: "General",
-          type: "System",
-          indicator: "AI backend not connected to analyze the " + reportedIssues.length + " active issues.",
-          timeframe: "N/A",
-          preventiveAction: "Configure Gemini AI for insights.",
-          riskLevel: "Medium"
-        }
-      ]);
-    }
-
-    const issuesContext = reportedIssues.slice(0, 15).map(i => `[${i.category}] ${i.location} - ${i.title}`).join("\n");
-    const prompt = `Based on the following recent civic issues, generate a predictive insight analysis forecasting 2-3 potential civic infrastructure failure points.
+  if (reportedIssues.length > 0 && isAiAvailable()) {
+    try {
+      const issuesContext = reportedIssues.slice(0, 15).map(i => `[${i.category}] ${i.location} - ${i.title}`).join("\n");
+      const prompt = `Based on the following recent civic issues, generate a predictive insight analysis forecasting 2-3 potential civic infrastructure failure points.
 
 Recent Issues:
 ${issuesContext}
@@ -594,28 +708,49 @@ Return a JSON array of objects with the following schema exactly (no markdown fo
   }
 ]`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-      },
-    });
+      const response = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+        },
+      });
 
-    if (response.text) {
-      try {
-        const insights = JSON.parse(response.text.trim());
-        res.json(insights);
-      } catch (e) {
-        res.status(500).json({ error: "Failed to parse predictive insights from AI." });
+      if (response.text) {
+        aiInsights = JSON.parse(response.text.trim());
       }
-    } else {
-      res.status(500).json({ error: "No response from AI." });
+    } catch (error) {
+      console.error("Predictive insights generation failed:", error);
+      disableAi(error);
     }
-  } catch (error) {
-    console.error("Predictive insights generation failed:", error);
-    res.status(500).json({ error: "An error occurred while generating predictive insights." });
   }
+
+  if (aiInsights) {
+    return res.json({ insights: aiInsights });
+  }
+
+  // Fallback to rule-based analysis
+  const insights: any[] = [];
+  if (reportedIssues.length > 0) {
+    const cluster = reportedIssues.reduce((acc, curr) => {
+      const key = `${curr.location}-${curr.category}`;
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    Object.entries(cluster).forEach(([key, count]) => {
+      if (count >= 2) {
+        const [loc, cat] = key.split('-');
+        insights.push(`${loc} ${cat} cluster — ${count} reports in 72hrs, PWD overload risk: HIGH. Recommend preventive inspection.`);
+      }
+    });
+  }
+
+  if (insights.length === 0) {
+    insights.push("No immediate trends identified based on current incident data.");
+  }
+
+  res.json({ insights });
 });
 
 // Get Citizen Gamification Profile

@@ -883,6 +883,21 @@ CivicPulse AI Resolution Agent & Connected Citizens
                     exit={{ opacity: 0, y: -5 }}
                     className="space-y-5"
                   >
+                    {/* Agent Pipeline Diagram */}
+                    <div className="flex items-center justify-between p-4 bg-slate-900 rounded-xl shadow-inner border border-slate-800">
+                      <div className="flex items-center gap-2 text-teal-400 font-mono text-[10px] font-bold">
+                        <span className="bg-teal-950 px-2 py-1 rounded border border-teal-800">CLASSIFIER</span>
+                      </div>
+                      <ArrowRight size={14} className="text-slate-600" />
+                      <div className="flex items-center gap-2 text-indigo-400 font-mono text-[10px] font-bold">
+                        <span className="bg-indigo-950 px-2 py-1 rounded border border-indigo-800">GEO-ROUTER</span>
+                      </div>
+                      <ArrowRight size={14} className="text-slate-600" />
+                      <div className="flex items-center gap-2 text-pink-400 font-mono text-[10px] font-bold">
+                        <span className="bg-pink-950 px-2 py-1 rounded border border-pink-800">RESOLUTION AGENT</span>
+                      </div>
+                    </div>
+
                     {/* Citizen description block */}
                     <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col md:flex-row gap-4 items-start">
                       {selectedIssue.imageUrl && (
