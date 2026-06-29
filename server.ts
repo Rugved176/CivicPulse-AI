@@ -362,8 +362,10 @@ Response format (JSON):
     const result = JSON.parse(response.text?.trim() || '{"duplicate": null}');
     res.json(result);
   } catch (error) {
-    console.error("Duplicate check failed:", error);
-    disableAi(error);
+    if (!isAiDisabled) {
+      console.error("Duplicate check failed:", error);
+      disableAi(error);
+    }
     res.json({ duplicate: null });
   }
 });
@@ -384,6 +386,8 @@ function isAiAvailable() {
 
 // Helper to disable AI on permanent error
 function disableAi(error: any) {
+  if (isAiDisabled) return;
+  
   const errorString = JSON.stringify(error, Object.getOwnPropertyNames(error));
   console.log("DisableAI error object:", errorString);
   
@@ -726,8 +730,10 @@ Return a JSON array of objects with the following schema exactly (no markdown fo
         aiInsights = JSON.parse(response.text.trim());
       }
     } catch (error) {
-      console.error("Predictive insights generation failed:", error);
-      disableAi(error);
+      if (!isAiDisabled) {
+        console.error("Predictive insights generation failed:", error);
+        disableAi(error);
+      }
     }
   } else {
     console.log("AI is NOT available, skipping calling models.generateContent");
