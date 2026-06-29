@@ -115,7 +115,7 @@ export default function App() {
       ]);
 
       if (!statsRes.ok || !issuesRes.ok) {
-        throw new Error("Failed to communicate with the CivicPulse API backend.");
+        throw new Error("Failed to communicate with the CiviGuard-AI API backend.");
       }
 
       const statsContentType = statsRes.headers.get("content-type");
@@ -270,7 +270,7 @@ export default function App() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-base font-extrabold tracking-tight text-slate-900 font-display">
-                CivicPulse <span className="text-blue-600">AI</span>
+                CiviGuard <span className="text-blue-600">AI</span>
               </h1>
             </div>
             <p className="text-[10px] text-slate-500 font-medium">Multi-Agent Community Civic Issue Platform</p>
@@ -497,7 +497,7 @@ export default function App() {
 
       {/* Floating Info Note */}
       <footer className="border-t border-slate-200 bg-white p-4 text-center text-[10px] text-slate-400 font-mono">
-        <p>© 2026 CivicPulse AI — Serving Connected Municipal Corporations, Maharashtra, India. All agents active.</p>
+        <p>© 2026 CiviGuard-AI — Serving Connected Municipal Corporations, Maharashtra, India. All agents active.</p>
       </footer>
 
       {/* Report Civic Issue Modal */}
@@ -547,7 +547,7 @@ export default function App() {
               </button>
               <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
                 <Landmark className="text-blue-600" size={18} />
-                <h4 className="font-semibold text-slate-900 font-display">CivicPulse AI Architecture FAQs</h4>
+                <h4 className="font-semibold text-slate-900 font-display">CiviGuard-AI Architecture FAQs</h4>
               </div>
               <div className="space-y-4 text-xs overflow-y-auto max-h-[60vh] pr-1">
                 <div>

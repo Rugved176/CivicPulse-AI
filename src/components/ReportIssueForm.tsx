@@ -287,7 +287,7 @@ export default function ReportIssueForm({ onIssueReported, onClose, defaultRepor
                   <Cpu size={20} className="animate-pulse" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 font-display">CivicPulse AI Portal</h3>
+                  <h3 className="text-xl font-bold text-slate-900 font-display">CiviGuard-AI Portal</h3>
                   <p className="text-xs text-slate-600 mt-1 leading-relaxed">
                     An intelligent civic pipeline. Once reported, 4 autonomous LLM agents classify, cluster-check, draft formal municipal complaints, and run failure forecasting models in seconds.
                   </p>
@@ -514,7 +514,7 @@ export default function ReportIssueForm({ onIssueReported, onClose, defaultRepor
                     </>
                   ) : (
                     <>
-                      <span>Dispatch CivicPulse Agent Orchestrator</span>
+                      <span>Dispatch CiviGuard Agent Orchestrator</span>
                       <ArrowRight size={14} />
                     </>
                   )}

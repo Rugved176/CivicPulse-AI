@@ -100,7 +100,7 @@ export default function ReportsExplorer({
       subject: `E-SCALATION: Redressal request for public hazard (${issue.category.toUpperCase()}) at ${issue.location}`,
       body: issue.agentResponses?.complaintDraft || `Respected Sir/Madam,
 
-I am writing to formally log a community grievance on behalf of the residents of ${city.replace(' Municipal Corporation', '')}, filed through the CivicPulse AI Community Resolution Grid.
+I am writing to formally log a community grievance on behalf of the residents of ${city.replace(' Municipal Corporation', '')}, filed through the CiviGuard-AI Community Resolution Grid.
 
 We have recorded a critical civic issue with the following details:
 • Category / Classification: ${issue.category}
@@ -118,7 +118,7 @@ We request you to direct the ward engineering team to inspect this site, isolate
 Thank you in anticipation.
 
 Yours faithfully,
-CivicPulse AI Resolution Agent & Connected Citizens
+CiviGuard-AI Resolution Agent & Connected Citizens
 (Filer: ${issue.reportedBy})`,
       date
     };
@@ -165,7 +165,7 @@ CivicPulse AI Resolution Agent & Connected Citizens
         status: 'Completed',
         telemetry: {
           event: "CITIZEN_GRIEVANCE_INTAKE",
-          source: "CivicPulse Mobile Web",
+          source: "CiviGuard Mobile Web",
           user_id: issue.reportedBy,
           assigned_issue_id: issue.id,
           priority_factor: issue.priority,
@@ -279,7 +279,7 @@ CivicPulse AI Resolution Agent & Connected Citizens
           ping_frequency: "5Hz (Urgent)",
           sent_to: issue.department
         },
-        description: `Verified community user triggered an urgent fast-track signal. CivicPulse AI re-sent high-frequency priority pings to ${issue.department} to expedite physical resolution.`
+        description: `Verified community user triggered an urgent fast-track signal. CiviGuard-AI re-sent high-frequency priority pings to ${issue.department} to expedite physical resolution.`
       });
     }
 
@@ -300,7 +300,7 @@ CivicPulse AI Resolution Agent & Connected Citizens
           verification_agent: "Resolution Agent",
           final_status: "RESOLVED"
         },
-        description: `Remedial works completed at ${issue.location}. Site verified, photo-cleared by CivicPulse AI audit, and officially closed with full civic resolution records.`
+        description: `Remedial works completed at ${issue.location}. Site verified, photo-cleared by CiviGuard-AI audit, and officially closed with full civic resolution records.`
       });
     } else if (issue.status === 'Escalated') {
       events.push({
@@ -335,7 +335,7 @@ CivicPulse AI Resolution Agent & Connected Citizens
           surveillance_frequency: "Hourly poll cycle",
           next_health_check: "Active"
         },
-        description: `Surveillance loop actively tracking response metrics. Grievance remains open and is monitored by CivicPulse AI for SLA compliance.`
+        description: `Surveillance loop actively tracking response metrics. Grievance remains open and is monitored by CiviGuard-AI for SLA compliance.`
       });
     }
 

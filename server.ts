@@ -173,7 +173,7 @@ function runProceduralAgentOrchestrator(
     predictionText = "Waste accumulation speed matches weekend commercial peaks. Spillage and toxic drainage leakages predicted within 48 hours.";
   }
 
-  const orchestrator = `🧠 ORCHESTRATOR\nCivicPulse AI has captured a new civic report regarding "${title}". Mobilizing the specialized Classifier, Geo-Router, Resolution, and Insights sub-agents to process and escalate.`;
+  const orchestrator = `🧠 ORCHESTRATOR\nCiviGuard-AI has captured a new civic report regarding "${title}". Mobilizing the specialized Classifier, Geo-Router, Resolution, and Insights sub-agents to process and escalate.`;
   
   const classifier = `🔍 CLASSIFIER AGENT\nClassified as ${category} | Severity: ${severity}/10 | Routing to: ${deptDetails.name} | Priority: ${priority}\nAnalysis: Subject matter involves critical community infrastructure requiring standard escalation protocols.`;
   
@@ -186,7 +186,7 @@ function runProceduralAgentOrchestrator(
   const insights = `📊 INSIGHTS AGENT\nPattern status: municipal grid infrastructure check complete. Prediction: ${predictionText} Recommendation: Coordinate immediate municipal repair teams.`;
 
   const rawText = `🧠 ORCHESTRATOR
-I have received the civic issue report from ${reporter}. Activating CivicPulse Agent Orchestrator.
+I have received the civic issue report from ${reporter}. Activating CiviGuard Agent Orchestrator.
 
 🔍 CLASSIFIER AGENT
 Classify issue type: ${category} | Severity: ${severity}/10 | Routing to: ${deptDetails.name} | Priority: ${priority}
@@ -377,15 +377,20 @@ app.get("/api/stats", (req, res) => {
 
 // Helper to check if AI is available
 function isAiAvailable() {
-  return ai && !isAiDisabled;
+  const available = !!(ai && !isAiDisabled);
+  console.log("isAiAvailable check:", { aiExists: !!ai, isAiDisabled, available });
+  return available;
 }
 
 // Helper to disable AI on permanent error
 function disableAi(error: any) {
-  const code = error?.code || error?.error?.code || error?.status || error?.error?.status;
-  if (code === 429) {
+  const errorString = JSON.stringify(error, Object.getOwnPropertyNames(error));
+  console.log("DisableAI error object:", errorString);
+  
+  if (errorString.includes('429') || errorString.includes('RESOURCE_EXHAUSTED')) {
     isAiDisabled = true;
     console.warn("AI service disabled due to resource exhaustion.");
+    console.log("isAiDisabled is now:", isAiDisabled);
   }
 }
 
@@ -472,7 +477,7 @@ Location specified: "${location}"
 Reported By: "${reportedBy}"
 Coordinates: Lat ${finalLat.toFixed(5)}, Lng ${finalLng.toFixed(5)}
 
-Act as our multi-agent orchestration system (CivicPulse AI) and analyze this. You have 4 specialized agents:
+Act as our multi-agent orchestration system (CiviGuard-AI) and analyze this. You have 4 specialized agents:
 1. CLASSIFIER AGENT - Classify issue type, assess severity (1-10), route to department: ${deptDetails.name}, assign priority (Low, Medium, High, Critical).
 2. GEO-ROUTER AGENT - Check duplicate, assign ward: ${wardDetails.ward}, assign coordinates: Lat ${finalLat.toFixed(4)}, Lng ${finalLng.toFixed(4)}, declare cluster status.
 3. RESOLUTION AGENT - Draft formal complaint details, generate unique Complaint ID matching CP-[CODE]-XXXX, note expected response SLA in days. Write a full, formal complaint letter draft addressing the department.
@@ -504,7 +509,7 @@ Be highly realistic and specific. Ensure you follow the response format precisel
           contents: prompt,
           config: {
             responseMimeType: "application/json",
-            systemInstruction: "You are CivicPulse AI, a multi-agent community civic issue system.",
+            systemInstruction: "You are CiviGuard-AI, a multi-agent community civic issue system.",
           },
         });
 
@@ -688,6 +693,7 @@ app.get('/api/predictive-insights', async (req, res) => {
   let aiInsights = null;
 
   if (reportedIssues.length > 0 && isAiAvailable()) {
+    console.log("AI is available, calling models.generateContent");
     try {
       const issuesContext = reportedIssues.slice(0, 15).map(i => `[${i.category}] ${i.location} - ${i.title}`).join("\n");
       const prompt = `Based on the following recent civic issues, generate a predictive insight analysis forecasting 2-3 potential civic infrastructure failure points.
@@ -723,6 +729,8 @@ Return a JSON array of objects with the following schema exactly (no markdown fo
       console.error("Predictive insights generation failed:", error);
       disableAi(error);
     }
+  } else {
+    console.log("AI is NOT available, skipping calling models.generateContent");
   }
 
   if (aiInsights) {
@@ -813,7 +821,7 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`CivicPulse AI backend server running on http://0.0.0.0:${PORT}`);
+    console.log(`CiviGuard-AI backend server running on http://0.0.0.0:${PORT}`);
   });
 }
 
